@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>建築物工程技術服務建造費用計算</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        font-family: "Segoe UI", "Microsoft JhengHei", "微軟正黑體", sans-serif;
+        background: #f3f4f6;
+        color: #1f2937;
+        padding: 24px 12px;
+        line-height: 1.6;
+    }
+    .card {
+        max-width: 896px;
+        margin: 0 auto;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .card-title {
+        text-align: center;
+        font-size: 1.25rem;
+        font-weight: 500;
+        padding: 16px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .card-content { padding: 24px; }
+    .table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+    .table-header .label { font-size: 1.125rem; }
+    button {
+        background: #3b82f6;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.875rem;
+        font-family: inherit;
+    }
+    button:hover { background: #2563eb; }
+    #editBtn { padding: 4px 16px; }
+    .table-wrap { overflow-x: auto; }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #fff;
+    }
+    th, td {
+        border: 1px solid #d1d5db;
+        padding: 8px;
+    }
+    th { background: #f9fafb; font-weight: 600; }
+    th:first-child, td:first-child { text-align: left; }
+    th:not(:first-child), td:not(:first-child) { text-align: center; }
+    td input {
+        width: 80px;
+        padding: 4px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        text-align: center;
+        font-family: inherit;
+    }
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-top: 24px;
+    }
+    @media (max-width: 640px) {
+        .form-grid { grid-template-columns: 1fr; }
+    }
+    .form-grid label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+    .form-grid input, .form-grid select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 1rem;
+        font-family: inherit;
+    }
+    #calcBtn {
+        width: 100%;
+        padding: 12px;
+        font-size: 1rem;
+        margin-top: 24px;
+    }
+    #resultArea { margin-top: 24px; }
+    #resultArea h3 {
+        font-size: 1.125rem;
+        font-weight: 500;
+        margin-bottom: 12px;
+    }
+    .calc-item { font-size: 0.875rem; margin-bottom: 8px; }
+    .calc-item .detail { padding-left: 16px; }
+    .totals {
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #e5e7eb;
+    }
+    .totals p { font-weight: 500; margin-bottom: 8px; }
+    .totals .grand {
+        font-size: 1.125rem;
+        color: #2563eb;
+    }
+</style>
+</head>
+<body>
+<div class="card">
+    <div class="card-title">建築物工程技術服務建造費用</div>
+    <div class="card-content">
+        <div class="table-header">
+            <div class="label">費率表</div>
+            <button id="editBtn">編輯費率</button>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>金額區間</th>
+                        <th>第一類</th>
+                        <th>第二類</th>
+                        <th>第三類</th>
+                        <th>第四類</th>
+                    </tr>
+                </thead>
+                <tbody id="rateBody"></tbody>
+            </table>
+        </div>
+        <div class="form-grid">
+            <div>
+                <label for="costInput">建造費用 (新台幣)</label>
+                <input type="text" id="costInput" placeholder="請輸入建造費用" inputmode="numeric">
+            </div>
+            <div>
+                <label for="categorySelect">類別</label>
+                <select id="categorySelect">
+                    <option value="1">第一類</option>
+                    <option value="2">第二類</option>
+                    <option value="3">第三類</option>
+                    <option value="4">第四類</option>
+                </select>
+            </div>
+            <div>
+                <label for="planningInput">設計及規劃費用比率 (%)</label>
+                <input type="number" id="planningInput" value="55" min="0" max="100">
+            </div>
+            <div>
+                <label for="supervisionInput">監造服務費比率 (%)</label>
+                <input type="number" id="supervisionInput" value="45" min="0" max="100">
+            </div>
+        </div>
+        <button id="calcBtn">計算服務費</button>
+        <div id="resultArea"></div>
+    </div>
+</div>
+
+<script>
+// 費率表定義（機關委託技術服務廠商評選及計費辦法：建築物工程技術服務建造費用百分比參考表）
+const FEE_RANGES = [
+    { min: 0, max: 5000000, display: '0 ~ 500萬' },
+    { min: 5000000, max: 10000000, display: '500萬 ~ 1,000萬' },
+    { min: 10000000, max: 50000000, display: '1,000萬 ~ 5,000萬' },
+    { min: 50000000, max: 100000000, display: '5,000萬 ~ 1億' },
+    { min: 100000000, max: 500000000, display: '1億 ~ 5億' },
+    { min: 500000000, max: Infinity, display: '5億以上' }
+];
+const DEFAULT_RATES = {
+    '1': [8.6, 8.0, 6.9, 5.8, 4.6, 3.7],
+    '2': [9.3, 8.7, 7.6, 6.4, 5.2, 4.3],
+    '3': [9.8, 9.3, 8.2, 7.0, 5.8, 5.0],
+    '4': [10.5, 10.0, 8.9, 7.6, 6.4, 5.6]
+};
+
+// 工作副本（可編輯；重新整理頁面即還原預設）
+let rates = {
+    '1': DEFAULT_RATES['1'].slice(),
+    '2': DEFAULT_RATES['2'].slice(),
+    '3': DEFAULT_RATES['3'].slice(),
+    '4': DEFAULT_RATES['4'].slice()
+};
+let isEditing = false;
+
+const rateBody = document.getElementById('rateBody');
+const editBtn = document.getElementById('editBtn');
+const costInput = document.getElementById('costInput');
+const categorySelect = document.getElementById('categorySelect');
+const planningInput = document.getElementById('planningInput');
+const supervisionInput = document.getElementById('supervisionInput');
+const resultArea = document.getElementById('resultArea');
+
+function toChineseNumber(num) {
+    const chinese = ['一', '二', '三', '四', '五', '六'];
+    return chinese[num - 1] || String(num);
+}
+
+function formatChineseAmount(number) {
+    const wan = Math.floor(number / 10000);
+    const remainder = number % 10000;
+    if (wan > 0) {
+        return remainder > 0 ? wan + '萬' + remainder : wan + '萬';
+    }
+    return String(number);
+}
+
+function formatNumberWithCommas(number) {
+    if (number === '' || number === null || number === undefined) return '';
+    return String(number).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function renderRateTable() {
+    rateBody.innerHTML = '';
+    FEE_RANGES.forEach((range, rangeIndex) => {
+        const tr = document.createElement('tr');
+        const tdRange = document.createElement('td');
+        tdRange.textContent = range.display;
+        tr.appendChild(tdRange);
+
+        ['1', '2', '3', '4'].forEach((category) => {
+            const td = document.createElement('td');
+            if (isEditing) {
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.step = '0.1';
+                input.value = rates[category][rangeIndex];
+                input.addEventListener('input', () => {
+                    rates[category][rangeIndex] = parseFloat(input.value) || 0;
+                });
+                td.appendChild(input);
+            } else {
+                td.textContent = rates[category][rangeIndex] + '%';
+            }
+            tr.appendChild(td);
+        });
+        rateBody.appendChild(tr);
+    });
+}
+
+editBtn.addEventListener('click', () => {
+    isEditing = !isEditing;
+    editBtn.textContent = isEditing ? '完成編輯' : '編輯費率';
+    renderRateTable();
+});
+
+// 建造費用輸入：即打即千分位
+costInput.addEventListener('input', () => {
+    const raw = costInput.value.replace(/,/g, '');
+    costInput.value = formatNumberWithCommas(raw);
+});
+
+function validateInput(cost, planningRatio, supervisionRatio) {
+    if (costInput.value.trim() === '' || isNaN(cost) || cost < 0) {
+        alert('請輸入有效的建造費用 (非負數數字)');
+        return false;
+    }
+    if (isNaN(planningRatio) || planningRatio < 0 || planningRatio > 100) {
+        alert('設計及規劃費用比率需為 0-100 之間的數字');
+        return false;
+    }
+    if (isNaN(supervisionRatio) || supervisionRatio < 0 || supervisionRatio > 100) {
+        alert('監造服務費比率需為 0-100 之間的數字');
+        return false;
+    }
+    return true;
+}
+
+function calculateRangeFee(cost, range, rate, planningRatioNum, supervisionRatioNum) {
+    if (cost <= range.min) return { planningFee: 0, supervisionFee: 0, amount: 0 };
+
+    let rangeAmount = cost >= range.max ? range.max - range.min : cost - range.min;
+    rangeAmount = Math.max(0, rangeAmount);
+
+    return {
+        planningFee: Math.round(rangeAmount * (rate / 100) * planningRatioNum),
+        supervisionFee: Math.round(rangeAmount * (rate / 100) * supervisionRatioNum),
+        amount: rangeAmount
+    };
+}
+
+function calculateFee() {
+    const cost = Number(costInput.value.replace(/,/g, ''));
+    const planningRatio = Number(planningInput.value);
+    const supervisionRatio = Number(supervisionInput.value);
+
+    if (!validateInput(cost, planningRatio, supervisionRatio)) return;
+
+    const categoryRates = rates[categorySelect.value];
+    const calculations = [];
+    let totalPlanningFee = 0;
+    let totalSupervisionFee = 0;
+
+    FEE_RANGES.forEach((range, i) => {
+        const { planningFee, supervisionFee, amount } = calculateRangeFee(
+            cost, range, categoryRates[i], planningRatio / 100, supervisionRatio / 100
+        );
+        if (amount > 0) {
+            calculations.push({ range: range.display, amount, rate: categoryRates[i], planningFee, supervisionFee });
+            totalPlanningFee += planningFee;
+            totalSupervisionFee += supervisionFee;
+        }
+    });
+
+    renderResult(calculations, totalPlanningFee, totalSupervisionFee, planningRatio, supervisionRatio);
+}
+
+function renderResult(calculations, totalPlanningFee, totalSupervisionFee, planningRatio, supervisionRatio) {
+    const totalFee = totalPlanningFee + totalSupervisionFee;
+    let html = '<h3>計算結果</h3>';
+
+    calculations.forEach((calc, index) => {
+        html += '<div class="calc-item">'
+            + '<p>區間' + toChineseNumber(index + 1) + ' ' + calc.range + ':</p>'
+            + '<p class="detail">設計規劃費: ' + formatNumberWithCommas(calc.amount) + ' × ' + calc.rate + '% × ' + planningRatio + '% = ' + formatNumberWithCommas(calc.planningFee) + '</p>'
+            + '<p class="detail">監造服務費: ' + formatNumberWithCommas(calc.amount) + ' × ' + calc.rate + '% × ' + supervisionRatio + '% = ' + formatNumberWithCommas(calc.supervisionFee) + '</p>'
+            + '</div>';
+    });
+
+    html += '<div class="totals">'
+        + '<p>設計規劃費加總: ' + formatNumberWithCommas(totalPlanningFee) + '元 (' + formatChineseAmount(totalPlanningFee) + '元)</p>'
+        + '<p>監造服務費加總: ' + formatNumberWithCommas(totalSupervisionFee) + '元 (' + formatChineseAmount(totalSupervisionFee) + '元)</p>'
+        + '<p class="grand">總服務費用: ' + formatNumberWithCommas(totalFee) + '元 (' + formatChineseAmount(totalFee) + '元)</p>'
+        + '</div>';
+
+    resultArea.innerHTML = html;
+}
+
+document.getElementById('calcBtn').addEventListener('click', calculateFee);
+renderRateTable();
+</script>
+</body>
+</html>
