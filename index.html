@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>建築物工程技術服務建造費用計算</title>
+<title>工程技術服務建造費用計算</title>
 <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -28,14 +28,49 @@
         padding: 16px;
         border-bottom: 1px solid #e5e7eb;
     }
-    .card-content { padding: 24px; }
+    .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        border-bottom: 1px solid #e5e7eb;
+        background: #f9fafb;
+    }
+    .tabs button {
+        flex: 1 1 auto;
+        background: transparent;
+        color: #4b5563;
+        border: none;
+        border-bottom: 3px solid transparent;
+        border-radius: 0;
+        padding: 10px 8px;
+        font-size: 0.875rem;
+        cursor: pointer;
+    }
+    .tabs button:hover { background: #f3f4f6; color: #1f2937; }
+    .tabs button.active {
+        color: #2563eb;
+        border-bottom-color: #2563eb;
+        font-weight: 600;
+        background: #fff;
+    }
+    .panel { display: none; padding: 24px; }
+    .panel.active { display: block; }
+    .panel-title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+    }
     .table-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 16px;
+        margin-bottom: 12px;
     }
     .table-header .label { font-size: 1.125rem; }
+    .sub-label {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        margin: 16px 0 8px;
+    }
     button {
         background: #3b82f6;
         color: #fff;
@@ -46,7 +81,7 @@
         font-family: inherit;
     }
     button:hover { background: #2563eb; }
-    #editBtn { padding: 4px 16px; }
+    .edit-btn { padding: 4px 16px; }
     .table-wrap { overflow-x: auto; }
     table {
         width: 100%;
@@ -67,6 +102,11 @@
         border-radius: 4px;
         text-align: center;
         font-family: inherit;
+    }
+    .note {
+        font-size: 0.8125rem;
+        color: #6b7280;
+        margin-top: 8px;
     }
     .form-grid {
         display: grid;
@@ -91,20 +131,30 @@
         font-size: 1rem;
         font-family: inherit;
     }
-    #calcBtn {
+    .calc-btn {
         width: 100%;
         padding: 12px;
         font-size: 1rem;
         margin-top: 24px;
     }
-    #resultArea { margin-top: 24px; }
-    #resultArea h3 {
+    .result { margin-top: 24px; }
+    .result h3 {
         font-size: 1.125rem;
         font-weight: 500;
         margin-bottom: 12px;
     }
+    .result h4 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 12px 0 8px;
+    }
     .calc-item { font-size: 0.875rem; margin-bottom: 8px; }
     .calc-item .detail { padding-left: 16px; }
+    .subtotal {
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin: 8px 0 4px;
+    }
     .totals {
         margin-top: 16px;
         padding-top: 16px;
@@ -119,11 +169,20 @@
 </head>
 <body>
 <div class="card">
-    <div class="card-title">建築物工程技術服務建造費用</div>
-    <div class="card-content">
+    <div class="card-title">工程技術服務建造費用計算</div>
+    <div class="tabs">
+        <button class="active" data-panel="panel1">附表一 建築物工程</button>
+        <button data-panel="panel2">附表二 公共工程</button>
+        <button data-panel="panel3">附表三 專案管理(不含監造)</button>
+        <button data-panel="panel4">附表四 專案管理(含監造)</button>
+    </div>
+
+    <!-- ============ 附表一 ============ -->
+    <div class="panel active" id="panel1">
+        <div class="panel-title">附表一、建築物工程技術服務建造費用百分比參考表</div>
         <div class="table-header">
             <div class="label">費率表</div>
-            <button id="editBtn">編輯費率</button>
+            <button class="edit-btn" id="editBtn1">編輯費率</button>
         </div>
         <div class="table-wrap">
             <table>
@@ -136,17 +195,18 @@
                         <th>第四類</th>
                     </tr>
                 </thead>
-                <tbody id="rateBody"></tbody>
+                <tbody id="rateBody1"></tbody>
             </table>
         </div>
+        <p class="note">第五類（歷史性建築之工程、環境規劃設計業務等）：比照服務成本加公費法編列，或比照第四類辦理。</p>
         <div class="form-grid">
             <div>
-                <label for="costInput">建造費用 (新台幣)</label>
-                <input type="text" id="costInput" placeholder="請輸入建造費用" inputmode="numeric">
+                <label for="cost1">建造費用 (新台幣)</label>
+                <input type="text" id="cost1" placeholder="請輸入建造費用" inputmode="numeric">
             </div>
             <div>
-                <label for="categorySelect">類別</label>
-                <select id="categorySelect">
+                <label for="category1">類別</label>
+                <select id="category1">
                     <option value="1">第一類</option>
                     <option value="2">第二類</option>
                     <option value="3">第三類</option>
@@ -154,22 +214,149 @@
                 </select>
             </div>
             <div>
-                <label for="planningInput">設計及規劃費用比率 (%)</label>
-                <input type="number" id="planningInput" value="55" min="0" max="100">
+                <label for="planning1">設計及規劃費用比率 (%)</label>
+                <input type="number" id="planning1" value="55" min="0" max="100">
             </div>
             <div>
-                <label for="supervisionInput">監造服務費比率 (%)</label>
-                <input type="number" id="supervisionInput" value="45" min="0" max="100">
+                <label for="supervision1">監造服務費比率 (%)</label>
+                <input type="number" id="supervision1" value="45" min="0" max="100">
             </div>
         </div>
-        <button id="calcBtn">計算服務費</button>
-        <div id="resultArea"></div>
+        <button class="calc-btn" id="calcBtn1">計算服務費</button>
+        <div class="result" id="result1"></div>
+    </div>
+
+    <!-- ============ 附表二 ============ -->
+    <div class="panel" id="panel2">
+        <div class="panel-title">附表二、公共工程（不包括建築物工程）技術服務建造費用百分比參考表</div>
+        <div class="table-header">
+            <div class="label">費率表</div>
+            <button class="edit-btn" id="editBtn2">編輯費率</button>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>金額區間</th>
+                        <th>設計及協辦招標決標</th>
+                        <th>監造</th>
+                    </tr>
+                </thead>
+                <tbody id="rateBody2"></tbody>
+            </table>
+        </div>
+        <p class="note">兩欄為各自獨立的服務費用百分比（非比率拆分）；由同一廠商辦理者，得於合計值範圍內由機關調整組成。</p>
+        <div class="form-grid">
+            <div>
+                <label for="cost2">建造費用 (新台幣)</label>
+                <input type="text" id="cost2" placeholder="請輸入建造費用" inputmode="numeric">
+            </div>
+        </div>
+        <button class="calc-btn" id="calcBtn2">計算服務費</button>
+        <div class="result" id="result2"></div>
+    </div>
+
+    <!-- ============ 附表三 ============ -->
+    <div class="panel" id="panel3">
+        <div class="panel-title">附表三、工程專案管理（不含監造）技術服務建造費用百分比參考表</div>
+        <div class="table-header">
+            <div class="label">費率表</div>
+            <button class="edit-btn" id="editBtn3">編輯費率</button>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>金額區間</th>
+                        <th>服務費用百分比</th>
+                    </tr>
+                </thead>
+                <tbody id="rateBody3"></tbody>
+            </table>
+        </div>
+        <p class="note">組成參考：可行性研究 5%、規劃 5%、設計 35%、招標決標 10%、施工督導與履約管理 45%（機關得依個案調整）。</p>
+        <div class="form-grid">
+            <div>
+                <label for="cost3">建造費用 (新台幣)</label>
+                <input type="text" id="cost3" placeholder="請輸入建造費用" inputmode="numeric">
+            </div>
+        </div>
+        <button class="calc-btn" id="calcBtn3">計算服務費</button>
+        <div class="result" id="result3"></div>
+    </div>
+
+    <!-- ============ 附表四 ============ -->
+    <div class="panel" id="panel4">
+        <div class="panel-title">附表四、工程專案管理（含監造）技術服務建造費用百分比參考表</div>
+        <div class="table-header">
+            <div class="label">費率表</div>
+            <button class="edit-btn" id="editBtn4">編輯費率</button>
+        </div>
+        <div class="sub-label">壹、可行性研究、規劃、設計、招標、決標之諮詢及審查</div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>金額區間</th>
+                        <th>服務費用百分比</th>
+                    </tr>
+                </thead>
+                <tbody id="rateBody4a"></tbody>
+            </table>
+        </div>
+        <div class="sub-label">貳-一、建築物工程監造</div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>金額區間</th>
+                        <th>第一類</th>
+                        <th>第二類</th>
+                        <th>第三類</th>
+                        <th>第四類</th>
+                    </tr>
+                </thead>
+                <tbody id="rateBody4b"></tbody>
+            </table>
+        </div>
+        <div class="sub-label">貳-二、公共工程（不包括建築物工程）監造</div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>金額區間</th>
+                        <th>服務費用百分比</th>
+                    </tr>
+                </thead>
+                <tbody id="rateBody4c"></tbody>
+            </table>
+        </div>
+        <p class="note">工程專案管理含監造者，服務費用＝「壹」＋「貳-一（建築物工程）或貳-二（公共工程）」加總。建築物工程分類同附表一；第五類之監造費用比照服務成本加公費法編列，或比照第四類辦理。</p>
+        <div class="form-grid">
+            <div>
+                <label for="cost4">建造費用 (新台幣)</label>
+                <input type="text" id="cost4" placeholder="請輸入建造費用" inputmode="numeric">
+            </div>
+            <div>
+                <label for="type4">工程類型</label>
+                <select id="type4">
+                    <option value="b1">建築物工程 第一類</option>
+                    <option value="b2">建築物工程 第二類</option>
+                    <option value="b3">建築物工程 第三類</option>
+                    <option value="b4">建築物工程 第四類</option>
+                    <option value="pub">公共工程（不包括建築物工程）</option>
+                </select>
+            </div>
+        </div>
+        <button class="calc-btn" id="calcBtn4">計算服務費</button>
+        <div class="result" id="result4"></div>
     </div>
 </div>
 
 <script>
-// 費率表定義（機關委託技術服務廠商評選及計費辦法：建築物工程技術服務建造費用百分比參考表）
-const FEE_RANGES = [
+// ============ 級距定義（機關委託技術服務廠商評選及計費辦法 第29條附表） ============
+// 500萬系：附表一、附表二、附表四之「貳」監造
+const TIERS_A = [
     { min: 0, max: 5000000, display: '0 ~ 500萬' },
     { min: 5000000, max: 10000000, display: '500萬 ~ 1,000萬' },
     { min: 10000000, max: 50000000, display: '1,000萬 ~ 5,000萬' },
@@ -177,42 +364,64 @@ const FEE_RANGES = [
     { min: 100000000, max: 500000000, display: '1億 ~ 5億' },
     { min: 500000000, max: Infinity, display: '5億以上' }
 ];
-const DEFAULT_RATES = {
-    '1': [8.6, 8.0, 6.9, 5.8, 4.6, 3.7],
-    '2': [9.3, 8.7, 7.6, 6.4, 5.2, 4.3],
-    '3': [9.8, 9.3, 8.2, 7.0, 5.8, 5.0],
-    '4': [10.5, 10.0, 8.9, 7.6, 6.4, 5.6]
+// 3億系：附表三、附表四之「壹」
+const TIERS_B = [
+    { min: 0, max: 300000000, display: '0 ~ 3億' },
+    { min: 300000000, max: 500000000, display: '3億 ~ 5億' },
+    { min: 500000000, max: 1000000000, display: '5億 ~ 10億' },
+    { min: 1000000000, max: Infinity, display: '10億以上' }
+];
+
+// ============ 預設費率（法規值） ============
+const DEFAULTS = {
+    t1: {   // 附表一：建築物工程 6級距×4類
+        '1': [8.6, 8.0, 6.9, 5.8, 4.6, 3.7],
+        '2': [9.3, 8.7, 7.6, 6.4, 5.2, 4.3],
+        '3': [9.8, 9.3, 8.2, 7.0, 5.8, 5.0],
+        '4': [10.5, 10.0, 8.9, 7.6, 6.4, 5.6]
+    },
+    t2design: [5.9, 5.6, 5.0, 4.3, 3.6, 3.2],       // 附表二：設計及協辦招標決標
+    t2supervision: [4.6, 4.4, 3.9, 3.3, 2.8, 2.4],   // 附表二：監造
+    t3: [3.5, 3.0, 2.5, 2.2],                        // 附表三：專案管理(不含監造) 4級距
+    t4part1: [1.9, 1.7, 1.4, 1.2],                   // 附表四壹：諮詢及審查 4級距
+    t4bldg: {                                        // 附表四貳-一：建築物工程監造 6級距×4類
+        '1': [3.8, 3.6, 3.1, 2.6, 2.1, 1.6],
+        '2': [4.1, 3.8, 3.3, 2.8, 2.4, 1.8],
+        '3': [4.4, 4.2, 3.7, 3.1, 2.6, 2.2],
+        '4': [4.6, 4.4, 3.9, 3.3, 2.8, 2.4]
+    },
+    t4pub: [4.6, 4.4, 3.9, 3.3, 2.8, 2.4]            // 附表四貳-二：公共工程監造
 };
 
 // 工作副本（可編輯；重新整理頁面即還原預設）
-let rates = {
-    '1': DEFAULT_RATES['1'].slice(),
-    '2': DEFAULT_RATES['2'].slice(),
-    '3': DEFAULT_RATES['3'].slice(),
-    '4': DEFAULT_RATES['4'].slice()
+const deepCopy = (v) => Array.isArray(v) ? v.slice()
+    : Object.fromEntries(Object.entries(v).map(([k, x]) => [k, x.slice()]));
+const rates = {
+    t1: deepCopy(DEFAULTS.t1),
+    t2design: deepCopy(DEFAULTS.t2design),
+    t2supervision: deepCopy(DEFAULTS.t2supervision),
+    t3: deepCopy(DEFAULTS.t3),
+    t4part1: deepCopy(DEFAULTS.t4part1),
+    t4bldg: deepCopy(DEFAULTS.t4bldg),
+    t4pub: deepCopy(DEFAULTS.t4pub)
 };
-let isEditing = false;
 
-const rateBody = document.getElementById('rateBody');
-const editBtn = document.getElementById('editBtn');
-const costInput = document.getElementById('costInput');
-const categorySelect = document.getElementById('categorySelect');
-const planningInput = document.getElementById('planningInput');
-const supervisionInput = document.getElementById('supervisionInput');
-const resultArea = document.getElementById('resultArea');
-
+// ============ 共用工具 ============
 function toChineseNumber(num) {
     const chinese = ['一', '二', '三', '四', '五', '六'];
     return chinese[num - 1] || String(num);
 }
 
 function formatChineseAmount(number) {
-    const wan = Math.floor(number / 10000);
-    const remainder = number % 10000;
-    if (wan > 0) {
-        return remainder > 0 ? wan + '萬' + remainder : wan + '萬';
-    }
-    return String(number);
+    const yi = Math.floor(number / 100000000);
+    const rest = number % 100000000;
+    const wan = Math.floor(rest / 10000);
+    const remainder = rest % 10000;
+    let s = '';
+    if (yi > 0) s += yi + '億';
+    if (wan > 0) s += wan + '萬';
+    if (remainder > 0 || s === '') s += remainder;
+    return s;
 }
 
 function formatNumberWithCommas(number) {
@@ -220,124 +429,247 @@ function formatNumberWithCommas(number) {
     return String(number).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
-function renderRateTable() {
-    rateBody.innerHTML = '';
-    FEE_RANGES.forEach((range, rangeIndex) => {
+// 累進計算：回傳有金額的級距明細 [{display, amount, rate, fee}]
+function calcProgressive(cost, tiers, rateArr) {
+    const items = [];
+    tiers.forEach((tier, i) => {
+        if (cost <= tier.min) return;
+        const amount = Math.max(0, (cost >= tier.max ? tier.max : cost) - tier.min);
+        if (amount > 0) {
+            items.push({
+                display: tier.display,
+                amount: amount,
+                rate: rateArr[i],
+                fee: Math.round(amount * (rateArr[i] / 100))
+            });
+        }
+    });
+    return items;
+}
+
+function readCost(inputEl, label) {
+    const raw = inputEl.value.replace(/,/g, '');
+    const cost = Number(raw);
+    if (raw.trim() === '' || isNaN(cost) || cost < 0) {
+        alert('請輸入有效的' + label + ' (非負數數字)');
+        return null;
+    }
+    return cost;
+}
+
+function totalsHtml(lines, grandLabel, grandValue) {
+    let html = '<div class="totals">';
+    lines.forEach(([label, value]) => {
+        html += '<p>' + label + ': ' + formatNumberWithCommas(value) + '元 (' + formatChineseAmount(value) + '元)</p>';
+    });
+    html += '<p class="grand">' + grandLabel + ': ' + formatNumberWithCommas(grandValue) + '元 (' + formatChineseAmount(grandValue) + '元)</p></div>';
+    return html;
+}
+
+// ============ 費率表渲染（通用） ============
+// cols: [{arr: 費率陣列（可變引用）}]
+function renderRateTable(tbody, tiers, cols, editing) {
+    tbody.innerHTML = '';
+    tiers.forEach((tier, rowIndex) => {
         const tr = document.createElement('tr');
         const tdRange = document.createElement('td');
-        tdRange.textContent = range.display;
+        tdRange.textContent = tier.display;
         tr.appendChild(tdRange);
-
-        ['1', '2', '3', '4'].forEach((category) => {
+        cols.forEach((col) => {
             const td = document.createElement('td');
-            if (isEditing) {
+            if (editing) {
                 const input = document.createElement('input');
                 input.type = 'number';
                 input.step = '0.1';
-                input.value = rates[category][rangeIndex];
+                input.value = col.arr[rowIndex];
                 input.addEventListener('input', () => {
-                    rates[category][rangeIndex] = parseFloat(input.value) || 0;
+                    col.arr[rowIndex] = parseFloat(input.value) || 0;
                 });
                 td.appendChild(input);
             } else {
-                td.textContent = rates[category][rangeIndex] + '%';
+                td.textContent = col.arr[rowIndex] + '%';
             }
             tr.appendChild(td);
         });
-        rateBody.appendChild(tr);
+        tbody.appendChild(tr);
     });
 }
 
-editBtn.addEventListener('click', () => {
-    isEditing = !isEditing;
-    editBtn.textContent = isEditing ? '完成編輯' : '編輯費率';
-    renderRateTable();
+// 各分頁的費率表定義：editBtn 切換時重繪該分頁全部表格
+const rateTables = {
+    panel1: { editBtn: 'editBtn1', editing: false, tables: [
+        { tbody: 'rateBody1', tiers: TIERS_A, cols: [{ arr: rates.t1['1'] }, { arr: rates.t1['2'] }, { arr: rates.t1['3'] }, { arr: rates.t1['4'] }] }
+    ]},
+    panel2: { editBtn: 'editBtn2', editing: false, tables: [
+        { tbody: 'rateBody2', tiers: TIERS_A, cols: [{ arr: rates.t2design }, { arr: rates.t2supervision }] }
+    ]},
+    panel3: { editBtn: 'editBtn3', editing: false, tables: [
+        { tbody: 'rateBody3', tiers: TIERS_B, cols: [{ arr: rates.t3 }] }
+    ]},
+    panel4: { editBtn: 'editBtn4', editing: false, tables: [
+        { tbody: 'rateBody4a', tiers: TIERS_B, cols: [{ arr: rates.t4part1 }] },
+        { tbody: 'rateBody4b', tiers: TIERS_A, cols: [{ arr: rates.t4bldg['1'] }, { arr: rates.t4bldg['2'] }, { arr: rates.t4bldg['3'] }, { arr: rates.t4bldg['4'] }] },
+        { tbody: 'rateBody4c', tiers: TIERS_A, cols: [{ arr: rates.t4pub }] }
+    ]}
+};
+
+Object.values(rateTables).forEach((panel) => {
+    const btn = document.getElementById(panel.editBtn);
+    const render = () => panel.tables.forEach((t) =>
+        renderRateTable(document.getElementById(t.tbody), t.tiers, t.cols, panel.editing));
+    btn.addEventListener('click', () => {
+        panel.editing = !panel.editing;
+        btn.textContent = panel.editing ? '完成編輯' : '編輯費率';
+        render();
+    });
+    render();
 });
 
-// 建造費用輸入：即打即千分位
-costInput.addEventListener('input', () => {
-    const raw = costInput.value.replace(/,/g, '');
-    costInput.value = formatNumberWithCommas(raw);
+// ============ 分頁切換 ============
+document.querySelectorAll('.tabs button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tabs button').forEach((b) => b.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach((p) => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.panel).classList.add('active');
+    });
 });
 
-function validateInput(cost, planningRatio, supervisionRatio) {
-    if (costInput.value.trim() === '' || isNaN(cost) || cost < 0) {
-        alert('請輸入有效的建造費用 (非負數數字)');
-        return false;
-    }
+// ============ 建造費用輸入：即打即千分位 ============
+['cost1', 'cost2', 'cost3', 'cost4'].forEach((id) => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => {
+        el.value = formatNumberWithCommas(el.value.replace(/,/g, ''));
+    });
+});
+
+// ============ 附表一：建築物工程（比率拆分） ============
+document.getElementById('calcBtn1').addEventListener('click', () => {
+    const cost = readCost(document.getElementById('cost1'), '建造費用');
+    if (cost === null) return;
+    const planningRatio = Number(document.getElementById('planning1').value);
+    const supervisionRatio = Number(document.getElementById('supervision1').value);
     if (isNaN(planningRatio) || planningRatio < 0 || planningRatio > 100) {
         alert('設計及規劃費用比率需為 0-100 之間的數字');
-        return false;
+        return;
     }
     if (isNaN(supervisionRatio) || supervisionRatio < 0 || supervisionRatio > 100) {
         alert('監造服務費比率需為 0-100 之間的數字');
-        return false;
+        return;
     }
-    return true;
-}
 
-function calculateRangeFee(cost, range, rate, planningRatioNum, supervisionRatioNum) {
-    if (cost <= range.min) return { planningFee: 0, supervisionFee: 0, amount: 0 };
-
-    let rangeAmount = cost >= range.max ? range.max - range.min : cost - range.min;
-    rangeAmount = Math.max(0, rangeAmount);
-
-    return {
-        planningFee: Math.round(rangeAmount * (rate / 100) * planningRatioNum),
-        supervisionFee: Math.round(rangeAmount * (rate / 100) * supervisionRatioNum),
-        amount: rangeAmount
-    };
-}
-
-function calculateFee() {
-    const cost = Number(costInput.value.replace(/,/g, ''));
-    const planningRatio = Number(planningInput.value);
-    const supervisionRatio = Number(supervisionInput.value);
-
-    if (!validateInput(cost, planningRatio, supervisionRatio)) return;
-
-    const categoryRates = rates[categorySelect.value];
-    const calculations = [];
-    let totalPlanningFee = 0;
-    let totalSupervisionFee = 0;
-
-    FEE_RANGES.forEach((range, i) => {
-        const { planningFee, supervisionFee, amount } = calculateRangeFee(
-            cost, range, categoryRates[i], planningRatio / 100, supervisionRatio / 100
-        );
-        if (amount > 0) {
-            calculations.push({ range: range.display, amount, rate: categoryRates[i], planningFee, supervisionFee });
-            totalPlanningFee += planningFee;
-            totalSupervisionFee += supervisionFee;
-        }
-    });
-
-    renderResult(calculations, totalPlanningFee, totalSupervisionFee, planningRatio, supervisionRatio);
-}
-
-function renderResult(calculations, totalPlanningFee, totalSupervisionFee, planningRatio, supervisionRatio) {
-    const totalFee = totalPlanningFee + totalSupervisionFee;
+    const items = calcProgressive(cost, TIERS_A, rates.t1[document.getElementById('category1').value]);
+    let totalPlanning = 0, totalSupervision = 0;
     let html = '<h3>計算結果</h3>';
-
-    calculations.forEach((calc, index) => {
+    items.forEach((it, index) => {
+        const planningFee = Math.round(it.amount * (it.rate / 100) * (planningRatio / 100));
+        const supervisionFee = Math.round(it.amount * (it.rate / 100) * (supervisionRatio / 100));
+        totalPlanning += planningFee;
+        totalSupervision += supervisionFee;
         html += '<div class="calc-item">'
-            + '<p>區間' + toChineseNumber(index + 1) + ' ' + calc.range + ':</p>'
-            + '<p class="detail">設計規劃費: ' + formatNumberWithCommas(calc.amount) + ' × ' + calc.rate + '% × ' + planningRatio + '% = ' + formatNumberWithCommas(calc.planningFee) + '</p>'
-            + '<p class="detail">監造服務費: ' + formatNumberWithCommas(calc.amount) + ' × ' + calc.rate + '% × ' + supervisionRatio + '% = ' + formatNumberWithCommas(calc.supervisionFee) + '</p>'
+            + '<p>區間' + toChineseNumber(index + 1) + ' ' + it.display + ':</p>'
+            + '<p class="detail">設計規劃費: ' + formatNumberWithCommas(it.amount) + ' × ' + it.rate + '% × ' + planningRatio + '% = ' + formatNumberWithCommas(planningFee) + '</p>'
+            + '<p class="detail">監造服務費: ' + formatNumberWithCommas(it.amount) + ' × ' + it.rate + '% × ' + supervisionRatio + '% = ' + formatNumberWithCommas(supervisionFee) + '</p>'
             + '</div>';
     });
+    html += totalsHtml(
+        [['設計規劃費加總', totalPlanning], ['監造服務費加總', totalSupervision]],
+        '總服務費用', totalPlanning + totalSupervision
+    );
+    document.getElementById('result1').innerHTML = html;
+});
 
-    html += '<div class="totals">'
-        + '<p>設計規劃費加總: ' + formatNumberWithCommas(totalPlanningFee) + '元 (' + formatChineseAmount(totalPlanningFee) + '元)</p>'
-        + '<p>監造服務費加總: ' + formatNumberWithCommas(totalSupervisionFee) + '元 (' + formatChineseAmount(totalSupervisionFee) + '元)</p>'
-        + '<p class="grand">總服務費用: ' + formatNumberWithCommas(totalFee) + '元 (' + formatChineseAmount(totalFee) + '元)</p>'
-        + '</div>';
+// ============ 附表二：公共工程（兩欄獨立費率） ============
+document.getElementById('calcBtn2').addEventListener('click', () => {
+    const cost = readCost(document.getElementById('cost2'), '建造費用');
+    if (cost === null) return;
 
-    resultArea.innerHTML = html;
-}
+    const designItems = calcProgressive(cost, TIERS_A, rates.t2design);
+    const supervisionItems = calcProgressive(cost, TIERS_A, rates.t2supervision);
+    let totalDesign = 0, totalSupervision = 0;
+    let html = '<h3>計算結果</h3>';
+    designItems.forEach((d, index) => {
+        const s = supervisionItems[index];
+        totalDesign += d.fee;
+        totalSupervision += s.fee;
+        html += '<div class="calc-item">'
+            + '<p>區間' + toChineseNumber(index + 1) + ' ' + d.display + ':</p>'
+            + '<p class="detail">設計及協辦招標決標費: ' + formatNumberWithCommas(d.amount) + ' × ' + d.rate + '% = ' + formatNumberWithCommas(d.fee) + '</p>'
+            + '<p class="detail">監造費: ' + formatNumberWithCommas(s.amount) + ' × ' + s.rate + '% = ' + formatNumberWithCommas(s.fee) + '</p>'
+            + '</div>';
+    });
+    html += totalsHtml(
+        [['設計及協辦招標決標費加總', totalDesign], ['監造費加總', totalSupervision]],
+        '總服務費用', totalDesign + totalSupervision
+    );
+    document.getElementById('result2').innerHTML = html;
+});
 
-document.getElementById('calcBtn').addEventListener('click', calculateFee);
-renderRateTable();
+// ============ 附表三：專案管理(不含監造)（單一費率） ============
+document.getElementById('calcBtn3').addEventListener('click', () => {
+    const cost = readCost(document.getElementById('cost3'), '建造費用');
+    if (cost === null) return;
+
+    const items = calcProgressive(cost, TIERS_B, rates.t3);
+    let total = 0;
+    let html = '<h3>計算結果</h3>';
+    items.forEach((it, index) => {
+        total += it.fee;
+        html += '<div class="calc-item">'
+            + '<p>區間' + toChineseNumber(index + 1) + ' ' + it.display + ':</p>'
+            + '<p class="detail">專案管理費: ' + formatNumberWithCommas(it.amount) + ' × ' + it.rate + '% = ' + formatNumberWithCommas(it.fee) + '</p>'
+            + '</div>';
+    });
+    html += totalsHtml([], '專案管理費總計', total);
+    document.getElementById('result3').innerHTML = html;
+});
+
+// ============ 附表四：專案管理(含監造)＝壹＋貳 ============
+document.getElementById('calcBtn4').addEventListener('click', () => {
+    const cost = readCost(document.getElementById('cost4'), '建造費用');
+    if (cost === null) return;
+    const type = document.getElementById('type4').value;
+
+    const part1Items = calcProgressive(cost, TIERS_B, rates.t4part1);
+    let supervisionRates, supervisionLabel;
+    if (type === 'pub') {
+        supervisionRates = rates.t4pub;
+        supervisionLabel = '貳-二、公共工程（不包括建築物工程）監造';
+    } else {
+        const category = type.slice(1);
+        supervisionRates = rates.t4bldg[category];
+        supervisionLabel = '貳-一、建築物工程監造（第' + toChineseNumber(Number(category)) + '類）';
+    }
+    const part2Items = calcProgressive(cost, TIERS_A, supervisionRates);
+
+    let total1 = 0, total2 = 0;
+    let html = '<h3>計算結果</h3>';
+    html += '<h4>壹、可行性研究、規劃、設計、招標、決標之諮詢及審查</h4>';
+    part1Items.forEach((it, index) => {
+        total1 += it.fee;
+        html += '<div class="calc-item">'
+            + '<p>區間' + toChineseNumber(index + 1) + ' ' + it.display + ':</p>'
+            + '<p class="detail">諮詢及審查費: ' + formatNumberWithCommas(it.amount) + ' × ' + it.rate + '% = ' + formatNumberWithCommas(it.fee) + '</p>'
+            + '</div>';
+    });
+    html += '<p class="subtotal">壹 小計: ' + formatNumberWithCommas(total1) + '元 (' + formatChineseAmount(total1) + '元)</p>';
+
+    html += '<h4>' + supervisionLabel + '</h4>';
+    part2Items.forEach((it, index) => {
+        total2 += it.fee;
+        html += '<div class="calc-item">'
+            + '<p>區間' + toChineseNumber(index + 1) + ' ' + it.display + ':</p>'
+            + '<p class="detail">監造費: ' + formatNumberWithCommas(it.amount) + ' × ' + it.rate + '% = ' + formatNumberWithCommas(it.fee) + '</p>'
+            + '</div>';
+    });
+    html += '<p class="subtotal">貳 小計: ' + formatNumberWithCommas(total2) + '元 (' + formatChineseAmount(total2) + '元)</p>';
+
+    html += totalsHtml(
+        [['壹 諮詢及審查加總', total1], ['貳 監造加總', total2]],
+        '總服務費用', total1 + total2
+    );
+    document.getElementById('result4').innerHTML = html;
+});
 </script>
 </body>
 </html>
