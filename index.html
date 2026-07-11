@@ -432,6 +432,7 @@
                     <option value="b2">建築物工程 第二類</option>
                     <option value="b3">建築物工程 第三類</option>
                     <option value="b4">建築物工程 第四類</option>
+                    <option value="b5">建築物工程 第五類（比照第四類）</option>
                     <option value="pub">公共工程（不包括建築物工程）</option>
                 </select>
             </div>
@@ -729,13 +730,16 @@ document.getElementById('calcBtn4').addEventListener('click', () => {
         supervisionLabel = '貳-二、公共工程（不包括建築物工程）監造';
     } else {
         const category = type.slice(1);
-        supervisionRates = rates.t4bldg[category];
-        supervisionLabel = '貳-一、建築物工程監造（第' + toChineseNumber(Number(category)) + '類）';
+        // 第五類比照第四類辦理，監造費率同第四類（動態沿用，含編輯費率後）
+        supervisionRates = rates.t4bldg[category === '5' ? '4' : category];
+        supervisionLabel = '貳-一、建築物工程監造（第' + toChineseNumber(Number(category)) + '類'
+            + (category === '5' ? '，比照第四類' : '') + '）';
     }
     const part2Items = calcProgressive(cost, TIERS_A, supervisionRates);
 
     let total1 = 0, total2 = 0;
     let html = '<h3>計算結果</h3>';
+    if (type === 'b5') html += '<p class="note">第五類（歷史性建築、環境規劃設計等）之監造比照第四類費率計算；亦得依服務成本加公費法另行編列。</p>';
     html += '<h4>壹、可行性研究、規劃、設計、招標、決標之諮詢及審查</h4>';
     part1Items.forEach((it, index) => {
         total1 += it.fee;
