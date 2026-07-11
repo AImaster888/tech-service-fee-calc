@@ -94,6 +94,39 @@
         text-decoration: none;
     }
     .pdf-btn:hover { background: #eff6ff; }
+    .law-note {
+        margin: 16px 24px 0;
+        border: 1px solid #fcd34d;
+        border-radius: 6px;
+        background: #fffbeb;
+        font-size: 0.875rem;
+    }
+    .law-note summary {
+        padding: 10px 14px;
+        cursor: pointer;
+        font-weight: 600;
+        color: #92400e;
+        list-style-position: inside;
+    }
+    .law-note summary:hover { background: #fef3c7; border-radius: 6px; }
+    .law-note-body {
+        padding: 0 16px 14px;
+        color: #374151;
+    }
+    .law-note-body h5 {
+        font-size: 0.875rem;
+        margin: 12px 0 4px;
+        color: #92400e;
+    }
+    .law-note-body ul { padding-left: 20px; margin: 4px 0; }
+    .law-note-body li { margin-bottom: 2px; }
+    .law-note-body .highlight {
+        background: #fef3c7;
+        padding: 8px 12px;
+        border-radius: 4px;
+        margin-top: 12px;
+    }
+    .law-note-body a { color: #2563eb; }
     .table-wrap { overflow-x: auto; }
     table {
         width: 100%;
@@ -188,6 +221,36 @@
         <button data-panel="panel3">附表三 專案管理(不含監造)</button>
         <button data-panel="panel4">附表四 專案管理(含監造)</button>
     </div>
+
+    <!-- ============ 建造費用計算原則說明（辦法第29條，四附表通用） ============ -->
+    <details class="law-note">
+        <summary>什麼是「建造費用」？哪些費用不能列入？（辦法第 29 條）</summary>
+        <div class="law-note-body">
+            <h5>建造費用的定義</h5>
+            <p>指經機關核定之<strong>工程採購底價金額</strong>或<strong>評審委員會建議金額</strong>。工程採購無底價且無評審委員會建議金額者，以<strong>工程預算</strong>代之（但同樣要扣除下列不包括的費用及稅捐）。</p>
+            <h5>下列費用「不包括」在建造費用內（計算前應先扣除）</h5>
+            <ul>
+                <li>規費</li>
+                <li>規劃費、設計費、監造費、專案管理費</li>
+                <li>物價指數調整工程款</li>
+                <li>營業稅</li>
+                <li>土地及權利費用</li>
+                <li>法律費用</li>
+                <li>主辦機關所需工程管理費</li>
+                <li>承包商辦理工程之各項利息、保險費</li>
+                <li>招標文件所載其他除外費用</li>
+            </ul>
+            <div class="highlight">
+                <strong>為什麼要扣？</strong>服務費＝建造費用 × 費率。如果把上面這些費用也「列入」建造費用（基底灌水），算出來的服務費就會不當增加。輸入本工具的建造費用，應是<strong>扣除上列項目後</strong>的純工程金額。
+            </div>
+            <h5>其他規定</h5>
+            <ul>
+                <li>服務項目屬附表所載「不包括」者，其費用不含於建造費用百分比法計費範圍，應單獨列項供廠商報價，或依第 25 條之 1 估算後於招標文件載明固定費用。</li>
+                <li>履約期間有契約變更、終止或解除契約者，服務費用得視實際情形協議增減（依第 25 條規定之方式辦理）。</li>
+            </ul>
+            <p style="margin-top:12px">法規原文：<a href="https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=A0030077" target="_blank">機關委託技術服務廠商評選及計費辦法 第 29 條</a></p>
+        </div>
+    </details>
 
     <!-- ============ 附表一 ============ -->
     <div class="panel active" id="panel1">
