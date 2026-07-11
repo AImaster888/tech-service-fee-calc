@@ -289,6 +289,7 @@
                     <option value="2">第二類</option>
                     <option value="3">第三類</option>
                     <option value="4">第四類</option>
+                    <option value="5">第五類（比照第四類）</option>
                 </select>
             </div>
             <div>
@@ -645,9 +646,13 @@ document.getElementById('calcBtn1').addEventListener('click', () => {
         return;
     }
 
-    const items = calcProgressive(cost, TIERS_A, rates.t1[document.getElementById('category1').value]);
+    const category1 = document.getElementById('category1').value;
+    // 第五類比照第四類辦理，費率同第四類（動態沿用，含編輯費率後）
+    const rateArr1 = rates.t1[category1 === '5' ? '4' : category1];
+    const items = calcProgressive(cost, TIERS_A, rateArr1);
     let totalPlanning = 0, totalSupervision = 0;
     let html = '<h3>計算結果</h3>';
+    if (category1 === '5') html += '<p class="note">第五類（歷史性建築、環境規劃設計等）比照第四類費率計算；亦得依服務成本加公費法另行編列。</p>';
     items.forEach((it, index) => {
         const planningFee = Math.round(it.amount * (it.rate / 100) * (planningRatio / 100));
         const supervisionFee = Math.round(it.amount * (it.rate / 100) * (supervisionRatio / 100));
