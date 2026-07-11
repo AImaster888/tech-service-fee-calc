@@ -82,6 +82,18 @@
     }
     button:hover { background: #2563eb; }
     .edit-btn { padding: 4px 16px; }
+    .btn-group { display: flex; gap: 8px; align-items: center; }
+    .pdf-btn {
+        display: inline-block;
+        padding: 4px 16px;
+        border: 1px solid #3b82f6;
+        border-radius: 4px;
+        color: #2563eb;
+        background: #fff;
+        font-size: 0.875rem;
+        text-decoration: none;
+    }
+    .pdf-btn:hover { background: #eff6ff; }
     .table-wrap { overflow-x: auto; }
     table {
         width: 100%;
@@ -182,7 +194,10 @@
         <div class="panel-title">附表一、建築物工程技術服務建造費用百分比參考表</div>
         <div class="table-header">
             <div class="label">費率表</div>
-            <button class="edit-btn" id="editBtn1">編輯費率</button>
+            <div class="btn-group">
+                <a class="pdf-btn" href="source/附表一_建築物工程.pdf" target="_blank">附表 PDF</a>
+                <button class="edit-btn" id="editBtn1">編輯費率</button>
+            </div>
         </div>
         <div class="table-wrap">
             <table>
@@ -231,7 +246,10 @@
         <div class="panel-title">附表二、公共工程（不包括建築物工程）技術服務建造費用百分比參考表</div>
         <div class="table-header">
             <div class="label">費率表</div>
-            <button class="edit-btn" id="editBtn2">編輯費率</button>
+            <div class="btn-group">
+                <a class="pdf-btn" href="source/附表二_公共工程.pdf" target="_blank">附表 PDF</a>
+                <button class="edit-btn" id="editBtn2">編輯費率</button>
+            </div>
         </div>
         <div class="table-wrap">
             <table>
@@ -261,7 +279,10 @@
         <div class="panel-title">附表三、工程專案管理（不含監造）技術服務建造費用百分比參考表</div>
         <div class="table-header">
             <div class="label">費率表</div>
-            <button class="edit-btn" id="editBtn3">編輯費率</button>
+            <div class="btn-group">
+                <a class="pdf-btn" href="source/附表三_專案管理不含監造.pdf" target="_blank">附表 PDF</a>
+                <button class="edit-btn" id="editBtn3">編輯費率</button>
+            </div>
         </div>
         <div class="table-wrap">
             <table>
@@ -290,7 +311,10 @@
         <div class="panel-title">附表四、工程專案管理（含監造）技術服務建造費用百分比參考表</div>
         <div class="table-header">
             <div class="label">費率表</div>
-            <button class="edit-btn" id="editBtn4">編輯費率</button>
+            <div class="btn-group">
+                <a class="pdf-btn" href="source/附表四_專案管理含監造.pdf" target="_blank">附表 PDF</a>
+                <button class="edit-btn" id="editBtn4">編輯費率</button>
+            </div>
         </div>
         <div class="sub-label">壹、可行性研究、規劃、設計、招標、決標之諮詢及審查</div>
         <div class="table-wrap">

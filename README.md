@@ -4,13 +4,14 @@
 （英文法規名：Regulations for Selection and Fee Calculation of Technical Services Providers Entrusted by Entities）
 
 - 法規來源：https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=A0030077
-- 附表 PDF 原件備查：[law/](law/) 資料夾
+- 附表 PDF 原件：[source/](source/) 資料夾（頁面上各分頁的「附表 PDF」鈕會直接開啟）
 
 ## 怎麼開
 
-單一檔案、零依賴，不需安裝任何東西：
+零依賴，不需安裝任何東西：
 
 - 直接用滑鼠雙擊 `index.html`，用瀏覽器開啟即可（離線可用）。
+- 要複製給別人用時，請把**整個資料夾**一起複製（「附表 PDF」按鈕需要 `source/` 資料夾在旁邊）。
 
 ## 四個附表
 
