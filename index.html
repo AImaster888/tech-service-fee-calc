@@ -28,6 +28,12 @@
         padding: 16px;
         border-bottom: 1px solid #e5e7eb;
     }
+    .card-title .version {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 400;
+        color: #6b7280;
+    }
     .tabs {
         display: flex;
         flex-wrap: wrap;
@@ -83,6 +89,31 @@
     button:hover { background: #2563eb; }
     .edit-btn { padding: 4px 16px; }
     .btn-group { display: flex; gap: 8px; align-items: center; }
+    .discount-box {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: #f9fafb;
+        font-size: 0.875rem;
+    }
+    .discount-box input {
+        width: 60px;
+        padding: 2px 4px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        text-align: center;
+        font-family: inherit;
+        font-size: 0.875rem;
+    }
+    .rate-off {
+        display: block;
+        font-size: 0.75rem;
+        color: #2563eb;
+        white-space: nowrap;
+    }
     .pdf-btn {
         display: inline-block;
         padding: 4px 16px;
@@ -214,7 +245,7 @@
 </head>
 <body>
 <div class="card">
-    <div class="card-title">工程技術服務建造費用計算</div>
+    <div class="card-title">工程技術服務建造費用計算<span class="version">v1.3.2（2026-08-13）</span></div>
     <div class="tabs">
         <button class="active" data-panel="panel1">附表一 建築物工程</button>
         <button data-panel="panel2">附表二 公共工程</button>
@@ -258,6 +289,7 @@
         <div class="table-header">
             <div class="label">費率表</div>
             <div class="btn-group">
+                <label class="discount-box">折扣 <input type="number" id="discount1" value="100" min="0" max="100" step="1">%</label>
                 <a class="pdf-btn" href="source/附表一_建築物工程.pdf" target="_blank">附表 PDF</a>
                 <button class="edit-btn" id="editBtn1">編輯費率</button>
             </div>
@@ -311,6 +343,7 @@
         <div class="table-header">
             <div class="label">費率表</div>
             <div class="btn-group">
+                <label class="discount-box">折扣 <input type="number" id="discount2" value="100" min="0" max="100" step="1">%</label>
                 <a class="pdf-btn" href="source/附表二_公共工程.pdf" target="_blank">附表 PDF</a>
                 <button class="edit-btn" id="editBtn2">編輯費率</button>
             </div>
@@ -344,6 +377,7 @@
         <div class="table-header">
             <div class="label">費率表</div>
             <div class="btn-group">
+                <label class="discount-box">折扣 <input type="number" id="discount3" value="100" min="0" max="100" step="1">%</label>
                 <a class="pdf-btn" href="source/附表三_專案管理不含監造.pdf" target="_blank">附表 PDF</a>
                 <button class="edit-btn" id="editBtn3">編輯費率</button>
             </div>
@@ -376,6 +410,7 @@
         <div class="table-header">
             <div class="label">費率表</div>
             <div class="btn-group">
+                <label class="discount-box">折扣 <input type="number" id="discount4" value="100" min="0" max="100" step="1">%</label>
                 <a class="pdf-btn" href="source/附表四_專案管理含監造.pdf" target="_blank">附表 PDF</a>
                 <button class="edit-btn" id="editBtn4">編輯費率</button>
             </div>
@@ -505,7 +540,8 @@ function formatChineseAmount(number) {
     const yi = Math.floor(number / 100000000);
     const rest = number % 100000000;
     const wan = Math.floor(rest / 10000);
-    const remainder = rest % 10000;
+    // 取餘數會帶出浮點噪音（241932.06 % 10000 = 1932.0599999999977），先去噪
+    const remainder = roundMoney(rest % 10000);
     let s = '';
     if (yi > 0) s += yi + '億';
     if (wan > 0) s += wan + '萬';
@@ -513,23 +549,70 @@ function formatChineseAmount(number) {
     return s;
 }
 
+// 千分位只加在整數部分，小數部分原樣接回
 function formatNumberWithCommas(number) {
     if (number === '' || number === null || number === undefined) return '';
-    return String(number).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const [intPart, decPart] = String(number).split('.');
+    const withCommas = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return decPart === undefined ? withCommas : withCommas + '.' + decPart;
 }
 
-// 累進計算：回傳有金額的級距明細 [{display, amount, rate, fee}]
-function calcProgressive(cost, tiers, rateArr) {
+// ============ 取位原則 ============
+// 費率：折後費率無條件捨去到小數 2 位
+// 金額：各區間明細不取位，只有「加總」四捨五入到小數 2 位
+// 兩者都要先用 toFixed(6) 消掉浮點誤差——8.6 × 90 / 100 在 JS 是 7.739999…，
+// 直接捨去會錯成 7.73（正解 7.74）。
+function floorRate(rate, discount) {
+    const raw = +(rate * discount / 100).toFixed(6);
+    return Math.floor(raw * 100 + 1e-9) / 100;
+}
+
+// 各區間明細金額：無條件捨去到 2 位
+function floorMoney(v) {
+    return Math.floor(+v.toFixed(6) * 100 + 1e-9) / 100;
+}
+
+// 消浮點噪音用（formatChineseAmount 處理帶小數的明細金額時需要）
+function roundMoney(v) {
+    return Math.round(+v.toFixed(6) * 100) / 100;
+}
+
+// 加總／小計／總計：四捨五入到整數元，不留小數
+function roundYuan(v) {
+    return Math.round(+v.toFixed(6));
+}
+
+// 加總行的組成算式：「265,500 + 252,000 = 517,500元 (51萬7500元)」
+// 只有一項時省略算式；相加結果被取整時，標出取整前的數字
+function sumExpr(parts, value) {
+    const list = parts || [];
+    const prefix = list.length > 1 ? list.map(formatMoney).join(' + ') + ' = ' : '';
+    const raw = roundMoney(list.reduce((a, b) => a + b, 0));
+    const rounded = (list.length && raw !== value) ? formatMoney(raw) + ' → 四捨五入 ' : '';
+    return prefix + rounded + formatMoney(value) + '元 (' + formatChineseAmount(value) + '元)';
+}
+
+// 顯示用：去浮點噪音、去尾端多餘的 0（整數就不顯示小數點），再加千分位
+function formatMoney(v) {
+    return formatNumberWithCommas(+(+v).toFixed(6));
+}
+
+// 累進計算：回傳有金額的級距明細 [{display, amount, rate, effRate, fee, discountedFee}]
+// fee / discountedFee 已無條件捨去到 2 位；附表一另有拆分比率，需自行一次乘到底再捨去
+function calcProgressive(cost, tiers, rateArr, discount = 100) {
     const items = [];
     tiers.forEach((tier, i) => {
         if (cost <= tier.min) return;
         const amount = Math.max(0, (cost >= tier.max ? tier.max : cost) - tier.min);
         if (amount > 0) {
+            const effRate = floorRate(rateArr[i], discount);
             items.push({
                 display: tier.display,
                 amount: amount,
                 rate: rateArr[i],
-                fee: Math.round(amount * (rateArr[i] / 100))
+                effRate: effRate,
+                fee: floorMoney(amount * (rateArr[i] / 100)),
+                discountedFee: floorMoney(amount * (effRate / 100))
             });
         }
     });
@@ -546,18 +629,39 @@ function readCost(inputEl, label) {
     return cost;
 }
 
-function totalsHtml(lines, grandLabel, grandValue) {
+function readDiscount(inputEl) {
+    const raw = inputEl.value.trim();
+    if (raw === '') return 100;               // 留空視為不打折
+    const discount = Number(raw);
+    if (isNaN(discount) || discount < 0 || discount > 100) {
+        alert('折扣需為 0-100 之間的數字（100 表示不打折）');
+        return null;
+    }
+    return discount;
+}
+
+// lines 的每一項為 [label, value, parts]，parts 為組成該加總的各區間金額
+// discountedGrand 為 null 時，輸出與未加折扣功能前完全相同
+function totalsHtml({ lines, grandLabel, grandValue, grandParts,
+                      discountedLines, discountedGrand, discountedGrandParts }) {
     let html = '<div class="totals">';
-    lines.forEach(([label, value]) => {
-        html += '<p>' + label + ': ' + formatNumberWithCommas(value) + '元 (' + formatChineseAmount(value) + '元)</p>';
+    (lines || []).forEach(([label, value, parts]) => {
+        html += '<p>' + label + ': ' + sumExpr(parts, value) + '</p>';
     });
-    html += '<p class="grand">' + grandLabel + ': ' + formatNumberWithCommas(grandValue) + '元 (' + formatChineseAmount(grandValue) + '元)</p></div>';
+    html += '<p class="grand">' + grandLabel + ': ' + sumExpr(grandParts, grandValue) + '</p>';
+    if (discountedGrand !== undefined && discountedGrand !== null) {
+        (discountedLines || []).forEach(([label, value, parts]) => {
+            html += '<p>（折後）' + label + ': ' + sumExpr(parts, value) + '</p>';
+        });
+        html += '<p class="grand">（折後）' + grandLabel + ': ' + sumExpr(discountedGrandParts, discountedGrand) + '</p>';
+    }
+    html += '</div>';
     return html;
 }
 
 // ============ 費率表渲染（通用） ============
 // cols: [{arr: 費率陣列（可變引用）}]
-function renderRateTable(tbody, tiers, cols, editing) {
+function renderRateTable(tbody, tiers, cols, editing, discount) {
     tbody.innerHTML = '';
     tiers.forEach((tier, rowIndex) => {
         const tr = document.createElement('tr');
@@ -577,6 +681,14 @@ function renderRateTable(tbody, tiers, cols, editing) {
                 td.appendChild(input);
             } else {
                 td.textContent = col.arr[rowIndex] + '%';
+                // 折後費率與原費率不同時才顯示（含「不打折但費率超過 2 位小數」的情形）
+                const effRate = floorRate(col.arr[rowIndex], discount);
+                if (effRate !== col.arr[rowIndex]) {
+                    const off = document.createElement('span');
+                    off.className = 'rate-off';
+                    off.textContent = (discount < 100 ? '×' + discount + '% = ' : '捨去2位 = ') + effRate + '%';
+                    td.appendChild(off);
+                }
             }
             tr.appendChild(td);
         });
@@ -586,16 +698,16 @@ function renderRateTable(tbody, tiers, cols, editing) {
 
 // 各分頁的費率表定義：editBtn 切換時重繪該分頁全部表格
 const rateTables = {
-    panel1: { editBtn: 'editBtn1', editing: false, tables: [
+    panel1: { editBtn: 'editBtn1', discount: 'discount1', editing: false, tables: [
         { tbody: 'rateBody1', tiers: TIERS_A, cols: [{ arr: rates.t1['1'] }, { arr: rates.t1['2'] }, { arr: rates.t1['3'] }, { arr: rates.t1['4'] }] }
     ]},
-    panel2: { editBtn: 'editBtn2', editing: false, tables: [
+    panel2: { editBtn: 'editBtn2', discount: 'discount2', editing: false, tables: [
         { tbody: 'rateBody2', tiers: TIERS_A, cols: [{ arr: rates.t2design }, { arr: rates.t2supervision }] }
     ]},
-    panel3: { editBtn: 'editBtn3', editing: false, tables: [
+    panel3: { editBtn: 'editBtn3', discount: 'discount3', editing: false, tables: [
         { tbody: 'rateBody3', tiers: TIERS_B, cols: [{ arr: rates.t3 }] }
     ]},
-    panel4: { editBtn: 'editBtn4', editing: false, tables: [
+    panel4: { editBtn: 'editBtn4', discount: 'discount4', editing: false, tables: [
         { tbody: 'rateBody4a', tiers: TIERS_B, cols: [{ arr: rates.t4part1 }] },
         { tbody: 'rateBody4b', tiers: TIERS_A, cols: [{ arr: rates.t4bldg['1'] }, { arr: rates.t4bldg['2'] }, { arr: rates.t4bldg['3'] }, { arr: rates.t4bldg['4'] }] },
         { tbody: 'rateBody4c', tiers: TIERS_A, cols: [{ arr: rates.t4pub }] }
@@ -604,13 +716,20 @@ const rateTables = {
 
 Object.values(rateTables).forEach((panel) => {
     const btn = document.getElementById(panel.editBtn);
+    const discountEl = document.getElementById(panel.discount);
+    // 邊打字邊重繪，不彈警告（超出範圍時暫視為不打折，按「計算」才驗證）
+    const previewDiscount = () => {
+        const d = Number(discountEl.value.trim());
+        return (discountEl.value.trim() === '' || isNaN(d) || d < 0 || d > 100) ? 100 : d;
+    };
     const render = () => panel.tables.forEach((t) =>
-        renderRateTable(document.getElementById(t.tbody), t.tiers, t.cols, panel.editing));
+        renderRateTable(document.getElementById(t.tbody), t.tiers, t.cols, panel.editing, previewDiscount()));
     btn.addEventListener('click', () => {
         panel.editing = !panel.editing;
         btn.textContent = panel.editing ? '完成編輯' : '編輯費率';
         render();
     });
+    discountEl.addEventListener('input', render);
     render();
 });
 
@@ -647,28 +766,56 @@ document.getElementById('calcBtn1').addEventListener('click', () => {
         return;
     }
 
+    const discount = readDiscount(document.getElementById('discount1'));
+    if (discount === null) return;
+
     const category1 = document.getElementById('category1').value;
     // 第五類比照第四類辦理，費率同第四類（動態沿用，含編輯費率後）
     const rateArr1 = rates.t1[category1 === '5' ? '4' : category1];
-    const items = calcProgressive(cost, TIERS_A, rateArr1);
+    const items = calcProgressive(cost, TIERS_A, rateArr1, discount);
+    const off = items.some((it) => it.effRate !== it.rate);
     let totalPlanning = 0, totalSupervision = 0;
+    let dTotalPlanning = 0, dTotalSupervision = 0;
+    const partsPlanning = [], partsSupervision = [], dPartsPlanning = [], dPartsSupervision = [];
     let html = '<h3>計算結果</h3>';
     if (category1 === '5') html += '<p class="note">第五類（歷史性建築、環境規劃設計等）比照第四類費率計算；亦得依服務成本加公費法另行編列。</p>';
     items.forEach((it, index) => {
-        const planningFee = Math.round(it.amount * (it.rate / 100) * (planningRatio / 100));
-        const supervisionFee = Math.round(it.amount * (it.rate / 100) * (supervisionRatio / 100));
+        // 一次乘到底再捨去，不可用已捨去的 it.fee 再乘拆分比率（會捨去兩次）
+        const planningFee = floorMoney(it.amount * (it.rate / 100) * (planningRatio / 100));
+        const supervisionFee = floorMoney(it.amount * (it.rate / 100) * (supervisionRatio / 100));
         totalPlanning += planningFee;
         totalSupervision += supervisionFee;
+        partsPlanning.push(planningFee);
+        partsSupervision.push(supervisionFee);
         html += '<div class="calc-item">'
             + '<p>區間' + toChineseNumber(index + 1) + ' ' + it.display + ':</p>'
-            + '<p class="detail">設計規劃費: ' + formatNumberWithCommas(it.amount) + ' × ' + it.rate + '% × ' + planningRatio + '% = ' + formatNumberWithCommas(planningFee) + '</p>'
-            + '<p class="detail">監造服務費: ' + formatNumberWithCommas(it.amount) + ' × ' + it.rate + '% × ' + supervisionRatio + '% = ' + formatNumberWithCommas(supervisionFee) + '</p>'
-            + '</div>';
+            + '<p class="detail">設計規劃費: ' + formatMoney(it.amount) + ' × ' + it.rate + '% × ' + planningRatio + '% = ' + formatMoney(planningFee) + '</p>'
+            + '<p class="detail">監造服務費: ' + formatMoney(it.amount) + ' × ' + it.rate + '% × ' + supervisionRatio + '% = ' + formatMoney(supervisionFee) + '</p>';
+        if (off) {
+            const dPlanningFee = floorMoney(it.amount * (it.effRate / 100) * (planningRatio / 100));
+            const dSupervisionFee = floorMoney(it.amount * (it.effRate / 100) * (supervisionRatio / 100));
+            dTotalPlanning += dPlanningFee;
+            dTotalSupervision += dSupervisionFee;
+            dPartsPlanning.push(dPlanningFee);
+            dPartsSupervision.push(dSupervisionFee);
+            html += '<p class="detail">（折後）設計規劃費: ' + formatMoney(it.amount) + ' × ' + it.rate + '% × ' + discount + '% × ' + planningRatio + '% = ' + formatMoney(dPlanningFee) + '</p>'
+                + '<p class="detail">（折後）監造服務費: ' + formatMoney(it.amount) + ' × ' + it.rate + '% × ' + discount + '% × ' + supervisionRatio + '% = ' + formatMoney(dSupervisionFee) + '</p>';
+        }
+        html += '</div>';
     });
-    html += totalsHtml(
-        [['設計規劃費加總', totalPlanning], ['監造服務費加總', totalSupervision]],
-        '總服務費用', totalPlanning + totalSupervision
-    );
+    totalPlanning = roundYuan(totalPlanning);
+    totalSupervision = roundYuan(totalSupervision);
+    dTotalPlanning = roundYuan(dTotalPlanning);
+    dTotalSupervision = roundYuan(dTotalSupervision);
+    html += totalsHtml({
+        lines: [['設計規劃費加總', totalPlanning, partsPlanning], ['監造服務費加總', totalSupervision, partsSupervision]],
+        grandLabel: '總服務費用',
+        grandValue: roundYuan(totalPlanning + totalSupervision),
+        grandParts: [totalPlanning, totalSupervision],
+        discountedLines: off ? [['設計規劃費加總', dTotalPlanning, dPartsPlanning], ['監造服務費加總', dTotalSupervision, dPartsSupervision]] : null,
+        discountedGrand: off ? roundYuan(dTotalPlanning + dTotalSupervision) : null,
+        discountedGrandParts: [dTotalPlanning, dTotalSupervision]
+    });
     document.getElementById('result1').innerHTML = html;
 });
 
@@ -677,24 +824,49 @@ document.getElementById('calcBtn2').addEventListener('click', () => {
     const cost = readCost(document.getElementById('cost2'), '建造費用');
     if (cost === null) return;
 
-    const designItems = calcProgressive(cost, TIERS_A, rates.t2design);
-    const supervisionItems = calcProgressive(cost, TIERS_A, rates.t2supervision);
+    const discount = readDiscount(document.getElementById('discount2'));
+    if (discount === null) return;
+
+    const designItems = calcProgressive(cost, TIERS_A, rates.t2design, discount);
+    const supervisionItems = calcProgressive(cost, TIERS_A, rates.t2supervision, discount);
+    const off = designItems.concat(supervisionItems).some((it) => it.effRate !== it.rate);
     let totalDesign = 0, totalSupervision = 0;
+    let dTotalDesign = 0, dTotalSupervision = 0;
+    const partsDesign = [], partsSupervision = [], dPartsDesign = [], dPartsSupervision = [];
     let html = '<h3>計算結果</h3>';
     designItems.forEach((d, index) => {
         const s = supervisionItems[index];
         totalDesign += d.fee;
         totalSupervision += s.fee;
+        partsDesign.push(d.fee);
+        partsSupervision.push(s.fee);
         html += '<div class="calc-item">'
             + '<p>區間' + toChineseNumber(index + 1) + ' ' + d.display + ':</p>'
-            + '<p class="detail">設計及協辦招標決標費: ' + formatNumberWithCommas(d.amount) + ' × ' + d.rate + '% = ' + formatNumberWithCommas(d.fee) + '</p>'
-            + '<p class="detail">監造費: ' + formatNumberWithCommas(s.amount) + ' × ' + s.rate + '% = ' + formatNumberWithCommas(s.fee) + '</p>'
-            + '</div>';
+            + '<p class="detail">設計及協辦招標決標費: ' + formatMoney(d.amount) + ' × ' + d.rate + '% = ' + formatMoney(d.fee) + '</p>'
+            + '<p class="detail">監造費: ' + formatMoney(s.amount) + ' × ' + s.rate + '% = ' + formatMoney(s.fee) + '</p>';
+        if (off) {
+            dTotalDesign += d.discountedFee;
+            dTotalSupervision += s.discountedFee;
+            dPartsDesign.push(d.discountedFee);
+            dPartsSupervision.push(s.discountedFee);
+            html += '<p class="detail">（折後）設計及協辦招標決標費: ' + formatMoney(d.amount) + ' × ' + d.rate + '% × ' + discount + '% = ' + formatMoney(d.discountedFee) + '</p>'
+                + '<p class="detail">（折後）監造費: ' + formatMoney(s.amount) + ' × ' + s.rate + '% × ' + discount + '% = ' + formatMoney(s.discountedFee) + '</p>';
+        }
+        html += '</div>';
     });
-    html += totalsHtml(
-        [['設計及協辦招標決標費加總', totalDesign], ['監造費加總', totalSupervision]],
-        '總服務費用', totalDesign + totalSupervision
-    );
+    totalDesign = roundYuan(totalDesign);
+    totalSupervision = roundYuan(totalSupervision);
+    dTotalDesign = roundYuan(dTotalDesign);
+    dTotalSupervision = roundYuan(dTotalSupervision);
+    html += totalsHtml({
+        lines: [['設計及協辦招標決標費加總', totalDesign, partsDesign], ['監造費加總', totalSupervision, partsSupervision]],
+        grandLabel: '總服務費用',
+        grandValue: roundYuan(totalDesign + totalSupervision),
+        grandParts: [totalDesign, totalSupervision],
+        discountedLines: off ? [['設計及協辦招標決標費加總', dTotalDesign, dPartsDesign], ['監造費加總', dTotalSupervision, dPartsSupervision]] : null,
+        discountedGrand: off ? roundYuan(dTotalDesign + dTotalSupervision) : null,
+        discountedGrandParts: [dTotalDesign, dTotalSupervision]
+    });
     document.getElementById('result2').innerHTML = html;
 });
 
@@ -703,17 +875,36 @@ document.getElementById('calcBtn3').addEventListener('click', () => {
     const cost = readCost(document.getElementById('cost3'), '建造費用');
     if (cost === null) return;
 
-    const items = calcProgressive(cost, TIERS_B, rates.t3);
-    let total = 0;
+    const discount = readDiscount(document.getElementById('discount3'));
+    if (discount === null) return;
+
+    const items = calcProgressive(cost, TIERS_B, rates.t3, discount);
+    const off = items.some((it) => it.effRate !== it.rate);
+    let total = 0, dTotal = 0;
+    const parts = [], dParts = [];
     let html = '<h3>計算結果</h3>';
     items.forEach((it, index) => {
         total += it.fee;
+        parts.push(it.fee);
         html += '<div class="calc-item">'
             + '<p>區間' + toChineseNumber(index + 1) + ' ' + it.display + ':</p>'
-            + '<p class="detail">專案管理費: ' + formatNumberWithCommas(it.amount) + ' × ' + it.rate + '% = ' + formatNumberWithCommas(it.fee) + '</p>'
-            + '</div>';
+            + '<p class="detail">專案管理費: ' + formatMoney(it.amount) + ' × ' + it.rate + '% = ' + formatMoney(it.fee) + '</p>';
+        if (off) {
+            dTotal += it.discountedFee;
+            dParts.push(it.discountedFee);
+            html += '<p class="detail">（折後）專案管理費: ' + formatMoney(it.amount) + ' × ' + it.rate + '% × ' + discount + '% = ' + formatMoney(it.discountedFee) + '</p>';
+        }
+        html += '</div>';
     });
-    html += totalsHtml([], '專案管理費總計', total);
+    html += totalsHtml({
+        lines: [],
+        grandLabel: '專案管理費總計',
+        grandValue: roundYuan(total),
+        grandParts: parts,
+        discountedLines: null,
+        discountedGrand: off ? roundYuan(dTotal) : null,
+        discountedGrandParts: dParts
+    });
     document.getElementById('result3').innerHTML = html;
 });
 
@@ -722,8 +913,10 @@ document.getElementById('calcBtn4').addEventListener('click', () => {
     const cost = readCost(document.getElementById('cost4'), '建造費用');
     if (cost === null) return;
     const type = document.getElementById('type4').value;
+    const discount = readDiscount(document.getElementById('discount4'));
+    if (discount === null) return;
 
-    const part1Items = calcProgressive(cost, TIERS_B, rates.t4part1);
+    const part1Items = calcProgressive(cost, TIERS_B, rates.t4part1, discount);
     let supervisionRates, supervisionLabel;
     if (type === 'pub') {
         supervisionRates = rates.t4pub;
@@ -735,35 +928,61 @@ document.getElementById('calcBtn4').addEventListener('click', () => {
         supervisionLabel = '貳-一、建築物工程監造（第' + toChineseNumber(Number(category)) + '類'
             + (category === '5' ? '，比照第四類' : '') + '）';
     }
-    const part2Items = calcProgressive(cost, TIERS_A, supervisionRates);
+    const part2Items = calcProgressive(cost, TIERS_A, supervisionRates, discount);
+    const off = part1Items.concat(part2Items).some((it) => it.effRate !== it.rate);
 
     let total1 = 0, total2 = 0;
+    let dTotal1 = 0, dTotal2 = 0;
+    const parts1 = [], parts2 = [], dParts1 = [], dParts2 = [];
     let html = '<h3>計算結果</h3>';
     if (type === 'b5') html += '<p class="note">第五類（歷史性建築、環境規劃設計等）之監造比照第四類費率計算；亦得依服務成本加公費法另行編列。</p>';
     html += '<h4>壹、可行性研究、規劃、設計、招標、決標之諮詢及審查</h4>';
     part1Items.forEach((it, index) => {
         total1 += it.fee;
+        parts1.push(it.fee);
         html += '<div class="calc-item">'
             + '<p>區間' + toChineseNumber(index + 1) + ' ' + it.display + ':</p>'
-            + '<p class="detail">諮詢及審查費: ' + formatNumberWithCommas(it.amount) + ' × ' + it.rate + '% = ' + formatNumberWithCommas(it.fee) + '</p>'
-            + '</div>';
+            + '<p class="detail">諮詢及審查費: ' + formatMoney(it.amount) + ' × ' + it.rate + '% = ' + formatMoney(it.fee) + '</p>';
+        if (off) {
+            dTotal1 += it.discountedFee;
+            dParts1.push(it.discountedFee);
+            html += '<p class="detail">（折後）諮詢及審查費: ' + formatMoney(it.amount) + ' × ' + it.rate + '% × ' + discount + '% = ' + formatMoney(it.discountedFee) + '</p>';
+        }
+        html += '</div>';
     });
-    html += '<p class="subtotal">壹 小計: ' + formatNumberWithCommas(total1) + '元 (' + formatChineseAmount(total1) + '元)</p>';
+    total1 = roundYuan(total1);
+    dTotal1 = roundYuan(dTotal1);
+    html += '<p class="subtotal">壹 小計: ' + sumExpr(parts1, total1) + '</p>';
+    if (off) html += '<p class="subtotal">（折後）壹 小計: ' + sumExpr(dParts1, dTotal1) + '</p>';
 
     html += '<h4>' + supervisionLabel + '</h4>';
     part2Items.forEach((it, index) => {
         total2 += it.fee;
+        parts2.push(it.fee);
         html += '<div class="calc-item">'
             + '<p>區間' + toChineseNumber(index + 1) + ' ' + it.display + ':</p>'
-            + '<p class="detail">監造費: ' + formatNumberWithCommas(it.amount) + ' × ' + it.rate + '% = ' + formatNumberWithCommas(it.fee) + '</p>'
-            + '</div>';
+            + '<p class="detail">監造費: ' + formatMoney(it.amount) + ' × ' + it.rate + '% = ' + formatMoney(it.fee) + '</p>';
+        if (off) {
+            dTotal2 += it.discountedFee;
+            dParts2.push(it.discountedFee);
+            html += '<p class="detail">（折後）監造費: ' + formatMoney(it.amount) + ' × ' + it.rate + '% × ' + discount + '% = ' + formatMoney(it.discountedFee) + '</p>';
+        }
+        html += '</div>';
     });
-    html += '<p class="subtotal">貳 小計: ' + formatNumberWithCommas(total2) + '元 (' + formatChineseAmount(total2) + '元)</p>';
+    total2 = roundYuan(total2);
+    dTotal2 = roundYuan(dTotal2);
+    html += '<p class="subtotal">貳 小計: ' + sumExpr(parts2, total2) + '</p>';
+    if (off) html += '<p class="subtotal">（折後）貳 小計: ' + sumExpr(dParts2, dTotal2) + '</p>';
 
-    html += totalsHtml(
-        [['壹 諮詢及審查加總', total1], ['貳 監造加總', total2]],
-        '總服務費用', total1 + total2
-    );
+    html += totalsHtml({
+        lines: [['壹 諮詢及審查加總', total1, parts1], ['貳 監造加總', total2, parts2]],
+        grandLabel: '總服務費用',
+        grandValue: roundYuan(total1 + total2),
+        grandParts: [total1, total2],
+        discountedLines: off ? [['壹 諮詢及審查加總', dTotal1, dParts1], ['貳 監造加總', dTotal2, dParts2]] : null,
+        discountedGrand: off ? roundYuan(dTotal1 + dTotal2) : null,
+        discountedGrandParts: [dTotal1, dTotal2]
+    });
     document.getElementById('result4').innerHTML = html;
 });
 </script>
